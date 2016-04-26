@@ -23,8 +23,6 @@
 #include "nsdl-c/sn_nsdl.h"
 
 #include "threadwrapper.h"
-#include "Thread.h"
-#include "Queue.h"
 #include "Socket.h"
 #include <string>
 
@@ -113,7 +111,7 @@ public:
      * before timing out, by default value is 0.
      * \return Number of bytes read or negative number if failed.
      */
-    int receive_from_socket(unsigned char *buf, size_t len, uint32_t timeout = 0);
+    int receive_from_socket(unsigned char *buf, size_t len);
 
     /**
     * @brief Error handling for DTLS connectivity.
@@ -130,37 +128,74 @@ public:
      */
     void set_platform_network_handler(void *handler = NULL);
 
+    /**
+    * \brief Claims mutex to prevent thread clashes
+    * in multithreaded environment.
+    */
+    void claim_mutex();
+
+    /**
+    * \brief Releases mutex to prevent thread clashes
+    * in multithreaded environment.
+    */
+    void release_mutex();
+
 private:
     /**
-    * @brief Internal handler for recieving data
+    * @brief Callback handler for sending data over socket.
     */
-    void listen_handler();
+    void send_handler();
 
-    void socket_handler();
+    /**
+    * @brief Callback handler for receiving data over socket.
+    */
+    void receive_handler();
+
+    /**
+    * @brief Callback handler for receiving data for secured connection.
+    */
+    void receive_handshake_handler();
+
+    /**
+    * @brief Callback handler for receiving data for secured connection.
+    */
+    static void thread_handler(void const *argument);
+
+    /**
+    * @brief Callback handler for receiving data for secured connection.
+    */
+    void receive_event();
+
+    /**
+    * @brief Callback handler for receiving data for secured connection.
+    */
+    void send_event();
 
     enum SocketEvent {
-        ESocketIdle        = 0x01,
+        ESocketIdle        = 0x00,
         ESocketReadytoRead = 0x02,
-        ESocketWritten     = 0x03
+        ESocketWritten     = 0x04,
+
     };
 
 private:
     M2MConnectionHandler                        *_base;
     M2MConnectionObserver                       &_observer;
     M2MConnectionSecurity                       *_security_impl; //owned
+    const M2MSecurity                           *_security; //non-owned
     bool                                        _use_secure_connection;
     M2MInterface::BindingMode                   _binding_mode;
     M2MInterface::NetworkStack                  _network_stack;
     M2MConnectionObserver::SocketAddress        _address;
     unsigned char                               _address_buffer[NSAPI_IP_SIZE];
     Socket                                      *_socket;
-    bool                                        _listening;
     bool                                        _is_handshaking;
+    bool                                        _listening;
     M2MConnectionObserver::ServerType           _server_type;
     uint16_t                                    _server_port;
     uint16_t                                    _listen_port;
     bool                                        _running;
-    rtos::Thread                                *_listen_thread;
+    rtos::Thread                                *_socket_thread;
     unsigned char                               _recv_buffer[1024];
     NetworkInterface                            *_network_interface;  //doesn't own
     SocketEvent                                 _socket_event;
