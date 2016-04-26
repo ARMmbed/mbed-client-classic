@@ -62,9 +62,9 @@ int M2MConnectionHandler::send_to_socket(const unsigned char *buf, size_t len)
     return _private_impl->send_to_socket(buf, len);
 }
 
-int M2MConnectionHandler::receive_from_socket(unsigned char *buf, size_t len, uint32_t timeout)
+int M2MConnectionHandler::receive_from_socket(unsigned char *buf, size_t len)
 {
-    return _private_impl->receive_from_socket(buf, len,timeout);
+    return _private_impl->receive_from_socket(buf, len);
 }
 
 bool M2MConnectionHandler::send_data(uint8_t *data,
@@ -84,3 +84,12 @@ void M2MConnectionHandler::set_platform_network_handler(void *handler)
     _private_impl->set_platform_network_handler(handler);
 }
 
+void M2MConnectionHandler::claim_mutex()
+{
+    _private_impl->claim_mutex();
+}
+
+void M2MConnectionHandler::release_mutex()
+{
+    _private_impl->release_mutex();
+}
