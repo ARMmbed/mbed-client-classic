@@ -171,6 +171,22 @@ private:
     */
     void send_event();
 
+    /**
+    * @brief Initialize mbed OS socket
+    */
+    void init_socket();
+
+    /**
+    * @brief Check socket type
+    * @return True if TCP connection otherwise false
+    */
+    bool is_tcp_connection();
+
+    /**
+    * @brief Close and delete socket
+    */
+    void close_socket();
+
     enum SocketEvent {
         ESocketIdle        = 0x00,
         ESocketReadytoRead = 0x02,
