@@ -17,6 +17,7 @@
 #define M2M_THREAD_WRAPPER_H__
 
 #include <Thread.h>
+#include "rtos.h"
 
 namespace rtos {
 
@@ -55,5 +56,4 @@ static Thread *create_thread(T *obj,
 
 }
                                           
-
 #endif //M2M_OBJECT_THREAD_H__
