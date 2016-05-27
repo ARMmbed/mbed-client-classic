@@ -20,6 +20,14 @@
 
 #define TRACE_GROUP "mClt"
 
+void timer_run_c( void const* arg)
+{
+    if(arg) {
+        M2MTimerPimpl *pimpl = (M2MTimerPimpl*)arg;
+        pimpl->timer_run();
+    }
+}
+
 M2MTimerPimpl::M2MTimerPimpl(M2MTimerObserver& observer)
 : _observer(observer),
   _single_shot(true),
@@ -29,7 +37,8 @@ M2MTimerPimpl::M2MTimerPimpl(M2MTimerObserver& observer)
   _total_interval(0),
   _status(0),
   _dtls_type(false),
-  _thread(0)
+  _final_thread(0),
+  _timer(0)
 {
 
 }
@@ -37,15 +46,21 @@ M2MTimerPimpl::M2MTimerPimpl(M2MTimerObserver& observer)
 M2MTimerPimpl::~M2MTimerPimpl()
 {
     stop_timer();
+    if(_timer) {
+        delete _timer;
+    }
+    if(_final_thread) {
+        delete _final_thread;
+    }
 }
 
 void M2MTimerPimpl::start_timer(uint64_t interval,
                                 M2MTimerObserver::Type type,
                                 bool single_shot)
 {
-    if(_thread) {
-        delete _thread;
-        _thread = NULL;
+    if(_timer) {
+        delete _timer;
+        _timer = NULL;
     }
     _dtls_type = false;
     _intermediate_interval = 0;
@@ -55,14 +70,19 @@ void M2MTimerPimpl::start_timer(uint64_t interval,
     _interval = interval;
     _type = type;
     _running = true;
-    _thread = rtos::create_thread<M2MTimerPimpl, &M2MTimerPimpl::timer_run>(this,osPriorityAboveNormal);
+    os_timer_type timer_type = osTimerPeriodic;
+    if(single_shot) {
+        timer_type = osTimerOnce;
+    }
+    _timer = new RtosTimer(timer_run_c, timer_type, (void*)this);
+    _timer->start(_interval);
 }
 
 void M2MTimerPimpl::start_dtls_timer(uint64_t intermediate_interval, uint64_t total_interval, M2MTimerObserver::Type type)
 {
-    if(_thread) {
-        delete _thread;
-        _thread = NULL;
+    if(_timer) {
+        delete _timer;
+        _timer = NULL;
     }
     _dtls_type = true;
     _intermediate_interval = intermediate_interval;
@@ -70,43 +90,44 @@ void M2MTimerPimpl::start_dtls_timer(uint64_t intermediate_interval, uint64_t to
     _status = 0;
     _type = type;
     _running = true;
-    _thread = rtos::create_thread<M2MTimerPimpl, &M2MTimerPimpl::timer_run>(this);
+    _timer = new RtosTimer(timer_run_c, osTimerOnce, (void*)this);
 }
 
 void M2MTimerPimpl::stop_timer()
 {
     _running = false;
-
-    if (_thread) {
-        delete _thread;
-        _thread = NULL;
+    if(_timer) {
+        _timer->stop();
     }
 }
 
-void M2MTimerPimpl::timer_run()
+void M2MTimerPimpl::timer_expired()
 {
+    _observer.timer_expired(_type);
+}
+
+void M2MTimerPimpl::timer_run()
+{    
     if (!_dtls_type) {
-        while (_running) {
-            _thread->wait(_interval);
-            if (!_running) {
-                return;
-            }
-            _observer.timer_expired(_type);
-            if (_single_shot) {
-                return;
-            }
+        if(_final_thread) {
+            delete _final_thread;
+            _final_thread = NULL;
         }
+        _final_thread = rtos::create_thread<M2MTimerPimpl, &M2MTimerPimpl::timer_expired>(this);
     } else {
-        tr_debug("M2MTimerPimpl::timer_run - Start Intermediate Timer");
-        _thread->wait(_intermediate_interval);
-        if (!_running) return;
-        _status++;
-        tr_debug("M2MTimerPimpl::timer_run - Start Final Timer");
-        _thread->wait(_total_interval - _intermediate_interval);
-        if (!_running) return;
-        _status++;
-        tr_debug("M2MTimerPimpl::timer_run - Final Timer Expired");
-        _observer.timer_expired(_type);
+        if(_status == 0) {
+            _status++;
+
+            tr_debug("M2MTimerPimpl::timer_run - Start Final Timer");
+            _timer->start(_total_interval - _intermediate_interval);
+        } else if(_status == 1) {
+            tr_debug("M2MTimerPimpl::timer_run - Final Timer Expired");
+            if(_final_thread) {
+                delete _final_thread;
+                _final_thread = NULL;
+            }
+            _final_thread = rtos::create_thread<M2MTimerPimpl, &M2MTimerPimpl::timer_expired>(this);
+        }
     }
 }
 

@@ -74,11 +74,13 @@ private:
      */
     bool is_total_interval_passed();
 
-private:
+public:
     /**
      * @brief Internal handler for timing
      */
     void timer_run();
+
+    void timer_expired();
 
 private:
     M2MTimerObserver&   _observer;
@@ -91,8 +93,8 @@ private:
     uint8_t             _status;
     bool                _dtls_type;
 
-    rtos::Thread        *_thread;
     rtos::Thread        *_final_thread;
+    RtosTimer           *_timer;
 
     bool                _running;
 
