@@ -17,7 +17,7 @@
 #include "mbed-client/m2mtimerobserver.h"
 #include "mbed-client-classic/m2mtimerpimpl.h"
 
-
+build_break
 M2MTimer::M2MTimer(M2MTimerObserver& observer)
 : _observer(observer)
 {
