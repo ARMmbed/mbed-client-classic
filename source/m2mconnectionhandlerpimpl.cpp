@@ -34,7 +34,7 @@ int8_t M2MConnectionHandlerPimpl::_tasklet_id = -1;
 
 extern "C" void connection_tasklet_event_handler(arm_event_s *event)
 {
-    tr_debug("M2MConnectionHandlerPimpl::connection_tasklet_event_handler");    
+    tr_debug("M2MConnectionHandlerPimpl::connection_tasklet_event_handler");
     M2MConnectionHandlerPimpl::TaskIdentifier *task_id = (M2MConnectionHandlerPimpl::TaskIdentifier*)event->data_ptr;
     M2MConnectionHandlerPimpl* pimpl = (M2MConnectionHandlerPimpl*)task_id->pimpl;
     if(pimpl) {
@@ -230,7 +230,15 @@ bool M2MConnectionHandlerPimpl::send_data(uint8_t *data,
     if (address == NULL || data == NULL) {
         return false;
     }
-    _task_identifier.data_ptr = data;
+    tr_debug("send_data at %p, len=%d: %s", data, data_len, mbed_trace_array(data, data_len));
+    uint8_t *cdata = 0;
+    cdata = (uint8_t*)malloc(data_len);
+    if (NULL == cdata) {
+        tr_debug("No memory for data copy");
+        return false;
+    }
+    memcpy(cdata, data, data_len);
+    _task_identifier.data_ptr = cdata;
     arm_event_s event;
     event.receiver = M2MConnectionHandlerPimpl::_tasklet_id;
     event.sender = 0;
@@ -247,6 +255,7 @@ void M2MConnectionHandlerPimpl::send_socket_data(uint8_t *data,
                                                  uint16_t data_len)
 {
     bool success = false;
+    tr_debug("send_socket at %p, len=%d: %s", data, data_len, mbed_trace_array(data, data_len));
     if( _use_secure_connection ){
         if( _security_impl->send_message(data, data_len) > 0){
             success = true;
@@ -272,6 +281,7 @@ void M2MConnectionHandlerPimpl::send_socket_data(uint8_t *data,
             success = true;
         }
     }
+    free(data);
 
     if (!success) {
         _observer.socket_error(M2MConnectionHandler::SOCKET_SEND_ERROR, true);
@@ -319,7 +329,7 @@ void M2MConnectionHandlerPimpl::stop_listening()
 int M2MConnectionHandlerPimpl::send_to_socket(const unsigned char *buf, size_t len)
 {
     tr_debug("M2MConnectionHandlerPimpl::send_to_socket len - %d", len);
-    int size = -1;    
+    int size = -1;
     if(is_tcp_connection()) {
         size = ((TCPSocket*)_socket)->send(buf,len);
     } else {
@@ -363,7 +373,7 @@ int M2MConnectionHandlerPimpl::receive_from_socket(unsigned char *buf, size_t le
 
 void M2MConnectionHandlerPimpl::handle_connection_error(int error)
 {
-    tr_debug("M2MConnectionHandlerPimpl::handle_connection_error");    
+    tr_debug("M2MConnectionHandlerPimpl::handle_connection_error");
     _observer.socket_error(error);
 }
 
@@ -390,7 +400,7 @@ void M2MConnectionHandlerPimpl::receive_handshake_handler()
                                     _server_type,
                                     _server_port);
         }else if( ret < 0 ){
-            _is_handshaking = false;            
+            _is_handshaking = false;
             _observer.socket_error(M2MConnectionHandler::SSL_CONNECTION_ERROR, true);
             close_socket();
         }
