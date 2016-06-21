@@ -64,6 +64,7 @@ extern "C" void connection_tasklet_event_handler(arm_event_s *event)
             tr_debug("connection_tasklet_event_handler - ESocketSend");
             if(pimpl) {
                 pimpl->send_socket_data((uint8_t*)task_id->data_ptr,(uint16_t)event->event_data);
+                free(task_id->data_ptr);
             }
             break;
         default:
@@ -209,6 +210,7 @@ void M2MConnectionHandlerPimpl::dns_handler()
         }
     }
     if(!_is_handshaking) {
+        enable_keepalive();
         _observer.address_ready(_address,
                                 _server_type,
                                 _address._port);
@@ -229,17 +231,24 @@ bool M2MConnectionHandlerPimpl::send_data(uint8_t *data,
     if (address == NULL || data == NULL) {
         return false;
     }
-    _task_identifier.data_ptr = data;
-    arm_event_s event;
-    event.receiver = M2MConnectionHandlerPimpl::_tasklet_id;
-    event.sender = 0;
-    event.event_type = ESocketSend;
-    event.data_ptr = &_task_identifier;
-    event.event_data = data_len;
-    event.priority = ARM_LIB_HIGH_PRIORITY_EVENT;
+    bool success = false;
+    uint8_t *buffer = (uint8_t*)malloc(data_len);
+    if(buffer) {
+        success = true;
+        memcpy(buffer, data, data_len);
+        _task_identifier.data_ptr = buffer;
+        arm_event_s event;
+        event.receiver = M2MConnectionHandlerPimpl::_tasklet_id;
+        event.sender = 0;
+        event.event_type = ESocketSend;
+        event.data_ptr = &_task_identifier;
+        event.event_data = data_len;
+        event.priority = ARM_LIB_HIGH_PRIORITY_EVENT;
 
-    eventOS_event_send(&event);
-    return true;
+        eventOS_event_send(&event);
+
+    }
+    return success;
 }
 
 void M2MConnectionHandlerPimpl::send_socket_data(uint8_t *data,
@@ -318,7 +327,7 @@ void M2MConnectionHandlerPimpl::stop_listening()
 int M2MConnectionHandlerPimpl::send_to_socket(const unsigned char *buf, size_t len)
 {
     tr_debug("M2MConnectionHandlerPimpl::send_to_socket len - %d", len);
-    int size = -1;    
+    int size = -1;
     if(is_tcp_connection()) {
         size = ((TCPSocket*)_socket)->send(buf,len);
     } else {
@@ -384,6 +393,7 @@ void M2MConnectionHandlerPimpl::receive_handshake_handler()
         } else if( ret == 0 ){
             _is_handshaking = false;
             _use_secure_connection = true;
+            enable_keepalive();
             _observer.address_ready(_address,
                                     _server_type,
                                     _server_port);
@@ -409,6 +419,7 @@ void M2MConnectionHandlerPimpl::receive_handler()
     if(_listening) {
         if( _use_secure_connection ){
             int rcv_size = _security_impl->read(_recv_buffer, receive_length);
+
             if(rcv_size >= 0){
                 _observer.data_available((uint8_t*)_recv_buffer,
                                          rcv_size, _address);
@@ -517,3 +528,22 @@ void M2MConnectionHandlerPimpl::close_socket()
     tr_debug("M2MConnectionHandlerPimpl::close_socket() - OUT");
 }
 
+void M2MConnectionHandlerPimpl::enable_keepalive()
+{
+#if MBED_CLIENT_TCP_KEEPALIVE_TIME
+    if(is_tcp_connection()) {
+        int keepalive = MBED_CLIENT_TCP_KEEPALIVE_TIME;
+        int enable = 1;
+        tr_debug("M2MConnectionHandlerPimpl::resolve_hostname - keepalive %d s\n", keepalive);
+        if(_socket->setsockopt(1,NSAPI_KEEPALIVE,&enable,sizeof(enable)) != 0) {
+            tr_error("M2MConnectionHandlerPimpl::enable_keepalive - setsockopt fail to Set Keepalive\n");
+        }
+        if(_socket->setsockopt(1,NSAPI_KEEPINTVL,&keepalive,sizeof(keepalive)) != 0) {
+            tr_error("M2MConnectionHandlerPimpl::enable_keepalive - setsockopt fail to Set Keepalive TimeInterval\n");
+        }
+        if(_socket->setsockopt(1,NSAPI_KEEPIDLE,&keepalive,sizeof(keepalive)) != 0) {
+            tr_error("M2MConnectionHandlerPimpl::enable_keepalive - setsockopt fail to Set Keepalive Time\n");
+        }
+    }
+#endif
+}
