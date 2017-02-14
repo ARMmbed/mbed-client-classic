@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 ARM Limited. All rights reserved.
+ * Copyright (c) 2015 - 2017 ARM Limited. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -44,7 +44,7 @@ public:
         ESocketIdle         = 0x00,
         ESocketReadytoRead  = 0x02,
         ESocketDnsHandler   = 0x04,
-        ESocketSend         = 0x08
+        ESocketSend         = 0x08,
     };
 
     struct TaskIdentifier {
@@ -187,9 +187,8 @@ public:
     * @brief Sends data to socket through event loop.
     */
     void send_socket_data(uint8_t *data, uint16_t data_len);
-    
-    void send_receive_event(void);
 
+    void send_receive_event(void);
 
 private:
 
@@ -245,6 +244,7 @@ private:
     palSocketAddress_t                          _socket_address;
     static int8_t                               _tasklet_id;
     String                                      _server_address;
+    uint8_t                                     _handshake_retry;
 
 friend class Test_M2MConnectionHandlerPimpl;
 friend class Test_M2MConnectionHandlerPimpl_mbed;
