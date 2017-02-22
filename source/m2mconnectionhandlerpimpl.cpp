@@ -490,7 +490,8 @@ int M2MConnectionHandlerPimpl::send_to_socket(const unsigned char *buf, size_t l
         return (-1);
     }
 
-    tr_debug("send_to_socket len - %d", len);
+    // Note: "%zu" does not work on GCC+mbed-os combo
+    tr_debug("send_to_socket len - %u", (unsigned int)len);
 
     if(is_tcp_connection()) {
 #ifdef PAL_NET_TCP_AND_TLS_SUPPORT
