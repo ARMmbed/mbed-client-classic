@@ -204,9 +204,6 @@ void M2MConnectionHandlerPimpl::dns_handler()
     switch (_socket_state) {
         case ESocketStateDisconnected:
 
-            // initialize the socket to stable state
-            close_socket();
-
             if(PAL_SUCCESS != pal_getAddressInfo(_server_address.c_str(), &_socket_address, &_socket_address_len)){
                 _observer.socket_error(M2MConnectionHandler::SOCKET_ABORT);
                 return;
@@ -307,20 +304,20 @@ void M2MConnectionHandlerPimpl::dns_handler()
                             if(_security_impl->start_connecting_non_blocking(_base) < 0 ){
                                 tr_debug("dns_handler - handshake failed");
                                 _is_handshaking = false;
-                                _observer.socket_error(M2MConnectionHandler::SSL_CONNECTION_ERROR);
                                 close_socket();
+                                _observer.socket_error(M2MConnectionHandler::SSL_CONNECTION_ERROR);
                                 return;
                             }
                         } else {
                             tr_error("resolve_server_address - init failed");
-                            _observer.socket_error(M2MConnectionHandler::SSL_CONNECTION_ERROR, false);
                             close_socket();
+                            _observer.socket_error(M2MConnectionHandler::SSL_CONNECTION_ERROR, false);
                             return;
                         }
                     } else {
                         tr_error("dns_handler - sec is null");
-                        _observer.socket_error(M2MConnectionHandler::SSL_CONNECTION_ERROR, false);
                         close_socket();
+                        _observer.socket_error(M2MConnectionHandler::SSL_CONNECTION_ERROR, false);
                         return;
                     }
                 }
@@ -378,6 +375,7 @@ bool M2MConnectionHandlerPimpl::send_data(uint8_t *data,
 
     tr_debug("send_data()");
     if (address == NULL || data == NULL || !data_len || !_running) {
+        tr_warn("send_data() too early");
         return false;
     }
 
@@ -409,6 +407,7 @@ void M2MConnectionHandlerPimpl::send_socket_data(uint8_t *data, uint16_t data_le
     palStatus_t ret = PAL_ERR_GENERIC_FAILURE;
 
     if(!data || ! data_len || !_running) {
+        tr_warn("send_socket_data() too early");
         return;
     }
 
@@ -719,14 +718,16 @@ bool M2MConnectionHandlerPimpl::is_tcp_connection()
 void M2MConnectionHandlerPimpl::close_socket()
 {
     tr_debug("close_socket() - IN");
-    if(_running) {
-       _running = false;
-       pal_close(&_socket);
+
+    palStatus_t status = PAL_SUCCESS;
+    if (_socket) {
+        status = pal_close(&_socket);
     }
+
     // make sure the socket connection statemachine is reset too.
     _socket_state = ESocketStateDisconnected;
-    
-    tr_debug("close_socket() - OUT");
+
+    tr_debug("close_socket() - status: %d OUT", (int)status);
 }
 
 void M2MConnectionHandlerPimpl::enable_keepalive()
