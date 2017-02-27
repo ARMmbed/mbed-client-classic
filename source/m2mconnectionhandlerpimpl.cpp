@@ -83,6 +83,10 @@ void M2MConnectionHandlerPimpl::send_receive_event(void)
         // The pal_connect() may issue callback even during it is called, which we ignore completely.
         tr_debug("send_receive_event : _socket_state: ESocketStateConnectBeingCalled, ignoring event");
         return;
+    } else if (_socket_state == ESocketStateCloseBeingCalled) {
+        // The pal_close() may issue callback even during it is called, which we ignore completely.
+        tr_debug("send_receive_event : _socket_state: ESocketStateCloseBeingCalled, ignoring event");
+        return;
     } else {
         event.event_type = ESocketDnsHandler;
     }
@@ -184,7 +188,7 @@ bool M2MConnectionHandlerPimpl::send_dns_event()
     tr_debug("send_dns_event()");
 
     arm_event_s event;
-    
+
     event.receiver = M2MConnectionHandlerPimpl::_tasklet_id;
     event.sender = 0;
     event.event_type = ESocketDnsHandler;
@@ -203,6 +207,9 @@ void M2MConnectionHandlerPimpl::dns_handler()
 
     switch (_socket_state) {
         case ESocketStateDisconnected:
+
+            // Initialize the socket to stable state
+            close_socket();
 
             if(PAL_SUCCESS != pal_getAddressInfo(_server_address.c_str(), &_socket_address, &_socket_address_len)){
                 _observer.socket_error(M2MConnectionHandler::SOCKET_ABORT);
@@ -263,7 +270,7 @@ void M2MConnectionHandlerPimpl::dns_handler()
                     // In this case the connect is done asynchronously, and the pal_socketMiniSelect()
                     // will be used to detect the end of connect.
                     // XXX: the mbed-os version of PAL has a bug (IOTPAL-228) open that the select
-                    // does not necessarily work correctly. So, should we actually handle 
+                    // does not necessarily work correctly. So, should we actually handle
                     // the PAL_ERR_SOCKET_IN_PROGRESS as a error here if code is compiled for mbed-os?
                     tr_debug("pal_connect(): %d, async connect started", status);
                     // we need to wait for the event
@@ -364,7 +371,7 @@ void M2MConnectionHandlerPimpl::dns_handler()
             }
             break;
     }
-    
+
 }
 
 bool M2MConnectionHandlerPimpl::send_data(uint8_t *data,
@@ -686,7 +693,6 @@ bool M2MConnectionHandlerPimpl::init_socket()
     pal_getNetInterfaceInfo(_net_iface, &interface_info);
     tr_debug("Interface name: %s",interface_info.interfaceName);
     tr_debug("Interface no: %d", _net_iface);
-
     tr_debug("init_socket - port %d", _listen_port);
 
     status = pal_asynchronousSocket(domain, socket_type, 1, _net_iface, &socket_event_handler, &_socket);
@@ -721,6 +727,9 @@ void M2MConnectionHandlerPimpl::close_socket()
 
     palStatus_t status = PAL_SUCCESS;
     if (_socket) {
+        // At least on mbed-os the pal_close() will perform callbacks even during it
+        // is called, which we will ignore when this state is set.
+        _socket_state = ESocketStateCloseBeingCalled;
         status = pal_close(&_socket);
     }
 

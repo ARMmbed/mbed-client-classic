@@ -64,7 +64,7 @@ public:
     * @brief Destructor
     */
     ~M2MConnectionHandlerPimpl();
-    
+
     void start_timer(void);
 
     /**
@@ -187,7 +187,7 @@ public:
     * @brief Sends data to socket through event loop.
     */
     void send_socket_data(uint8_t *data, uint16_t data_len);
-    
+
     void send_receive_event(void);
 
 
@@ -232,6 +232,9 @@ private:
         /** pal_connect() is in progress. */
         ESocketStateConnectBeingCalled,
 
+        /** pal_close() is in progress. */
+        ESocketStateCloseBeingCalled,
+
         /** pal_connect() has been called and we are waiting for asynchronous response. */
         ESocketStateConnecting,
 
@@ -249,7 +252,7 @@ private:
     M2MConnectionObserver::SocketAddress        _address;
 
     // _address._address will point to one of these two
-    palIpV4Addr_t                               _ipV4Addr; 
+    palIpV4Addr_t                               _ipV4Addr;
     palIpV6Addr_t                               _ipV6Addr;
 
     palSocket_t                                 _socket;
