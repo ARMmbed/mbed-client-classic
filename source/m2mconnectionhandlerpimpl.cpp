@@ -206,6 +206,11 @@ void M2MConnectionHandlerPimpl::dns_handler()
     tr_debug("M2MConnectionHandlerPimpl::dns_handler - _socket_state = %d", _socket_state);
 
     switch (_socket_state) {
+        case ESocketStateConnectBeingCalled:
+        case ESocketStateCloseBeingCalled:
+            // Ignore these events
+            break;
+
         case ESocketStateDisconnected:
 
             // Initialize the socket to stable state
@@ -368,6 +373,7 @@ void M2MConnectionHandlerPimpl::dns_handler()
                 } else {
                     tr_debug("dns_handler() - connect+select not ready yet, continue waiting");
                 }
+
             }
             break;
     }
