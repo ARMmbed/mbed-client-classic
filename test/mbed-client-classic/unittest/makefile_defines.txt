@@ -31,6 +31,7 @@ INCLUDE_DIRS =\
   ../../../../test_modules/mbed-os/features/FEATURE_COMMON_PAL/nanostack-hal-mbed-cmsis-rtos\
   ../../../../test_modules/mbed-os/hal/storage_abstraction\
   ../../../../test_modules/mbed-coap/\
+  ../../../../test_modules/mbed-coap/mbed-coap/\
   /usr/include\
   $(CPPUTEST_HOME)/include\
 
