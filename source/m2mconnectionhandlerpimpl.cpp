@@ -159,6 +159,7 @@ M2MConnectionHandlerPimpl::~M2MConnectionHandlerPimpl()
     stop_listening();
 
     close_socket();
+    pal_destroy();
 
     delete _security_impl;
     tr_debug("~M2MConnectionHandlerPimpl() - OUT");
