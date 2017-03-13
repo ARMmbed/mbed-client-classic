@@ -158,18 +158,6 @@ void Test_M2MConnectionHandlerPimpl_classic::test_dns_handler()
 
     /* error cases */
 
-    observer->addressReady = false;
-    observer->error = false;
-    m2msecurity_stub::int_value = M2MSecurity::Psk;
-    m2mconnectionsecurityimpl_stub::use_inc_int = false;
-    m2mconnectionsecurityimpl_stub::int_value = 0;
-    m2mconnectionsecurityimpl_stub::int_value2 = -123;
-    udp4_sec->resolve_server_address("1", 12345, M2MConnectionObserver::LWM2MServer, sec);
-    udp4_sec->dns_handler();
-    CHECK(observer->error);
-    CHECK(observer->addressReady == false);
-    CHECK(!udp4_sec->is_handshake_ongoing());
-
     M2MConnectionSecurity *connection_security;
 
     observer->error = false;
@@ -437,16 +425,6 @@ void Test_M2MConnectionHandlerPimpl_classic::test_receive_handler()
     CHECK(!observer->error);
 
     udp4_sec->_is_handshaking = false;
-    udp4_sec->_running = true;
-    observer->error = 0;
-    observer->dataAvailable = false;
-    m2mconnectionsecurityimpl_stub::use_inc_int = true;
-    m2mconnectionsecurityimpl_stub::inc_int_value = INT_MAX;
-    udp4_sec->receive_handler();
-    CHECK(observer->dataAvailable);
-    CHECK(observer->error);
-
-    udp4_sec->_is_handshaking = false;
     udp4_sec->_listening = false;
     observer->error = 0;
     observer->dataAvailable = false;
@@ -594,6 +572,16 @@ void Test_M2MConnectionHandlerPimpl_classic::test_receive_handshake_handler()
     udp4_sec->receive_handshake_handler();
     CHECK(!observer->error);
     CHECK(observer->addressReady);
+
+    udp4_sec->_is_handshaking = true;
+    udp4_sec->_handshake_retry = 100;
+    observer->error = 0;
+    observer->addressReady = 0;
+    m2mconnectionsecurityimpl_stub::use_inc_int = false;
+    m2mconnectionsecurityimpl_stub::int_value = M2MConnectionHandler::CONNECTION_ERROR_WANTS_READ;
+    udp4_sec->receive_handshake_handler();
+    CHECK(observer->error);
+    CHECK(!observer->addressReady);
 
     udp4_sec->_is_handshaking = true;
     observer->error = 0;

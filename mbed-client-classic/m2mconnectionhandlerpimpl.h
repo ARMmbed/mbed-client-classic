@@ -189,7 +189,6 @@ public:
 
     void send_receive_event(void);
 
-
 private:
 
     /**
@@ -270,6 +269,7 @@ private:
     // asynchronous events and callbacks. Note: the state may be accessed from
     // event sender and receiver threads.
     volatile SocketState                        _socket_state;
+    uint8_t                                     _handshake_retry;
 
 friend class Test_M2MConnectionHandlerPimpl;
 friend class Test_M2MConnectionHandlerPimpl_mbed;

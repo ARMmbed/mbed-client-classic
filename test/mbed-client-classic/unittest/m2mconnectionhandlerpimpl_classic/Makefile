@@ -21,6 +21,9 @@ TEST_SRC_FILES = \
        ../stub/m2mstringbufferbase_stub.cpp \
        ../stub/nsdlaccesshelper_stub.cpp \
        ../stub/pal_stub.cpp \
+       ../stub/nsdlaccesshelper_stub.cpp \
+       ../stub/m2mstringbufferbase_stub.cpp \
+
 
 
 
