@@ -216,7 +216,10 @@ void M2MConnectionHandlerPimpl::dns_handler()
             // Initialize the socket to stable state
             close_socket();
 
-            if(PAL_SUCCESS != pal_getAddressInfo(_server_address.c_str(), &_socket_address, &_socket_address_len)){
+            status = pal_getAddressInfo(_server_address.c_str(), &_socket_address, &_socket_address_len);
+            if (PAL_SUCCESS != status) {
+                tr_error("addrInfo, err: %d", (int)status);
+                // XXX: the error code given to client is wrong, a DNS_RESOLVING_ERROR might be better here.
                 _observer.socket_error(M2MConnectionHandler::SOCKET_ABORT);
                 return;
             }
@@ -224,7 +227,9 @@ void M2MConnectionHandlerPimpl::dns_handler()
 
             if(_network_stack == M2MInterface::LwIP_IPv4 ||
                _network_stack == M2MInterface::ATWINC_IPv4){
-                if(PAL_SUCCESS != pal_getSockAddrIPV4Addr(&_socket_address,_ipV4Addr)){
+                status = pal_getSockAddrIPV4Addr(&_socket_address,_ipV4Addr);
+                if (PAL_SUCCESS != status) {
+                    tr_error("sockAddr4, err: %d", (int)status);
                     _observer.socket_error(M2MConnectionHandler::SOCKET_ABORT);
                     return;
                 }
@@ -238,7 +243,9 @@ void M2MConnectionHandlerPimpl::dns_handler()
             }
             else if(_network_stack == M2MInterface::LwIP_IPv6 ||
                     _network_stack == M2MInterface::Nanostack_IPv6){
-                if(PAL_SUCCESS != pal_getSockAddrIPV6Addr(&_socket_address,_ipV6Addr)){
+                status = pal_getSockAddrIPV6Addr(&_socket_address,_ipV6Addr);
+                if (PAL_SUCCESS != status) {
+                    tr_error("sockAddr6, err: %d", (int)status);
                     _observer.socket_error(M2MConnectionHandler::SOCKET_ABORT);
                     return;
                 }
@@ -251,13 +258,15 @@ void M2MConnectionHandlerPimpl::dns_handler()
                 _address._stack = _network_stack;
             }
             else {
-                tr_error("socket config error, %d", (int)_network_stack);
+                tr_error("socket config error, stack: %d", (int)_network_stack);
                 _observer.socket_error(M2MConnectionHandler::SOCKET_ABORT);
                 return;
             }
 
             if(!init_socket()) {
-                _observer.socket_error(M2MConnectionHandler::SOCKET_ABORT);
+                tr_error("socket init error");
+                // The init_socket() calls the socket_error() -callback directly, so it must not be
+                // done here too.
                 return;
             }
 
@@ -373,11 +382,9 @@ void M2MConnectionHandlerPimpl::dns_handler()
                 } else {
                     tr_debug("dns_handler() - connect+select not ready yet, continue waiting");
                 }
-
             }
             break;
     }
-
 }
 
 bool M2MConnectionHandlerPimpl::send_data(uint8_t *data,
@@ -680,6 +687,9 @@ bool M2MConnectionHandlerPimpl::init_socket()
 #ifdef PAL_NET_TCP_AND_TLS_SUPPORT
         socket_type = PAL_SOCK_STREAM;
 #else
+        // Somebody has built code without TCP support but tries to use it.
+        // Perhaps a "assert(false)" would be sufficient.
+        tr_error("TCP config error");
         _observer.socket_error(M2MConnectionHandler::SOCKET_ABORT);
         return;
 #endif //PAL_NET_TCP_AND_TLS_SUPPORT
@@ -704,6 +714,7 @@ bool M2MConnectionHandlerPimpl::init_socket()
     status = pal_asynchronousSocket(domain, socket_type, 1, _net_iface, &socket_event_handler, &_socket);
 
     if(PAL_SUCCESS != status) {
+        tr_error("socket create error : %d", (int)status);
         _observer.socket_error(M2MConnectionHandler::SOCKET_ABORT);
         return false;
     }
