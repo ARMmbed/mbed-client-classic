@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 ARM Limited. All rights reserved.
+ * Copyright (c) 2016 - 2017 ARM Limited. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ int8_t eventOS_event_handler_create(void (*handler_func_ptr)(arm_event_s *), uin
     return eventOS_stub::int8_value;
 }
 
-int8_t eventOS_event_send(arm_event_s *event)
+extern "C" int8_t eventOS_event_send(const arm_event_s *event)
 {
     if(event->data_ptr && !eventOS_stub::int8_value)
     {

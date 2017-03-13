@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 ARM Limited. All rights reserved.
+ * Copyright (c) 2016 - 2017 ARM Limited. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 #include "m2mresource_stub.h"
+
 
 uint32_t m2mresource_stub::int_value;
 uint8_t* m2mresource_stub::delayed_token;
@@ -186,5 +187,5 @@ M2MObjectInstance& M2MResource::get_parent_object_instance() const
 
 const char* M2MResource::object_name() const
 {
-
 }
+

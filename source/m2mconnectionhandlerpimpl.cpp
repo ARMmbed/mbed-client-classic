@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 ARM Limited. All rights reserved.
+ * Copyright (c) 2015 - 2017 ARM Limited. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  * Licensed under the Apache License, Version 2.0 (the License); you may
  * not use this file except in compliance with the License.
@@ -25,16 +25,22 @@
 #include "mbed-client/m2mconnectionhandler.h"
 
 #include "pal.h"
+#include "pal_errors.h"
+#include "pal_macros.h"
 #include "pal_network.h"
 
 #include "eventOS_scheduler.h"
 #include "eventOS_event.h"
+#include "eventOS_event_timer.h"
 
 #include "mbed-trace/mbed_trace.h"
-
-#include <stdlib.h> // free() and malloc()
+#include "mbed.h"
 
 #define TRACE_GROUP "mClt"
+
+#ifndef CONNECTION_TLS_MAX_RETRY
+#define CONNECTION_TLS_MAX_RETRY 60
+#endif
 
 int8_t M2MConnectionHandlerPimpl::_tasklet_id = -1;
 
@@ -89,7 +95,9 @@ void M2MConnectionHandlerPimpl::send_receive_event(void)
         event.event_type = ESocketDnsHandler;
     }
 
-    eventOS_event_send(&event);
+    if(eventOS_event_send(&event)){
+        _observer.socket_error(M2MConnectionHandler::SOCKET_READ_ERROR, true);
+    }
 }
 
 extern "C" void socket_event_handler(void)
@@ -118,7 +126,8 @@ M2MConnectionHandlerPimpl::M2MConnectionHandlerPimpl(M2MConnectionHandler* base,
  _listen_port(0),
  _running(false),
  _net_iface(0),
-_socket_state(ESocketStateDisconnected)
+ _socket_state(ESocketStateDisconnected),
+ _handshake_retry(0)
 {
 #ifndef PAL_NET_TCP_AND_TLS_SUPPORT
     if (is_tcp_connection()) {
@@ -311,6 +320,7 @@ void M2MConnectionHandlerPimpl::dns_handler()
         // fall through is a normal flow in case the UDP was used or pal_connect() happened to return immediately with PAL_SUCCESS
         case ESocketStateConnected:
             if (_security) {
+                _use_secure_connection = true;
                 if (_security->resource_value_int(M2MSecurity::SecurityMode) == M2MSecurity::Certificate ||
                     _security->resource_value_int(M2MSecurity::SecurityMode) == M2MSecurity::Psk) {
                     if( _security_impl != NULL ){
@@ -318,13 +328,7 @@ void M2MConnectionHandlerPimpl::dns_handler()
                         if (_security_impl->init(_security) == 0) {
                             _is_handshaking = true;
                             tr_debug("resolve_server_address - connect DTLS");
-                            if(_security_impl->start_connecting_non_blocking(_base) < 0 ){
-                                tr_debug("dns_handler - handshake failed");
-                                _is_handshaking = false;
-                                close_socket();
-                                _observer.socket_error(M2MConnectionHandler::SSL_CONNECTION_ERROR);
-                                return;
-                            }
+                            send_receive_event();
                         } else {
                             tr_error("resolve_server_address - init failed");
                             close_socket();
@@ -592,19 +596,15 @@ bool M2MConnectionHandlerPimpl::is_handshake_ongoing()
 
 void M2MConnectionHandlerPimpl::receive_handler()
 {
-    tr_debug("receive_handler()");
     if(_is_handshaking){
         receive_handshake_handler();
-        return;
     }
 
-    if(!_listening || !_running) {
-        return;
-    }
+    else if(_listening && _running){
 
-    if( _use_secure_connection ){
-        int rcv_size;
-        do{
+        if( _use_secure_connection ){
+
+            int rcv_size;
             rcv_size = _security_impl->read(_recv_buffer, sizeof(_recv_buffer));
             if(rcv_size > 0){
                 _observer.data_available((uint8_t*)_recv_buffer,
@@ -614,11 +614,11 @@ void M2MConnectionHandlerPimpl::receive_handler()
                 close_socket();
                 return;
             }
-        } while(M2MConnectionHandler::CONNECTION_ERROR_WANTS_READ != rcv_size);
-    } else{
-        size_t recv;
-        palStatus_t status;
-        do{
+
+        } else{
+            size_t recv;
+            palStatus_t status;
+
             if(is_tcp_connection()){
 #ifdef PAL_NET_TCP_AND_TLS_SUPPORT
                 status = pal_recv(_socket, _recv_buffer, sizeof(_recv_buffer), &recv);
@@ -657,8 +657,10 @@ void M2MConnectionHandlerPimpl::receive_handler()
                 }
 #endif //PAL_NET_TCP_AND_TLS_SUPPORT
             }
-        } while(status != PAL_ERR_SOCKET_WOULD_BLOCK);
+        }
+
     }
+
 }
 
 void M2MConnectionHandlerPimpl::claim_mutex()
@@ -722,6 +724,8 @@ bool M2MConnectionHandlerPimpl::init_socket()
 
     pal_setSockAddrPort(&bind_address, _listen_port);
     pal_bind(_socket, &bind_address, sizeof(bind_address));
+
+    _security_impl->set_socket(_socket, &_socket_address);
 
     tr_debug("init_socket - OUT");
     return true;
