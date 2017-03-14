@@ -154,7 +154,6 @@ M2MConnectionHandlerPimpl::~M2MConnectionHandlerPimpl()
 {
     tr_debug("~M2MConnectionHandlerPimpl()");
     stop_listening();
-    close_socket();
     delete _security_impl;
     pal_destroy();
     tr_debug("~M2MConnectionHandlerPimpl() - OUT");
@@ -486,10 +485,13 @@ void M2MConnectionHandlerPimpl::stop_listening()
 {
     tr_debug("stop_listening()");
     _listening = false;
+    _running = false;
 
     if(_security_impl) {
         _security_impl->reset();
     }
+
+    close_socket();
 }
 
 int M2MConnectionHandlerPimpl::send_to_socket(const unsigned char *buf, size_t len)
