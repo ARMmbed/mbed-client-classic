@@ -223,7 +223,14 @@ void M2MConnectionHandlerPimpl::dns_handler()
                 _observer.socket_error(M2MConnectionHandler::SOCKET_ABORT);
                 return;
             }
-            pal_setSockAddrPort(&_socket_address, _server_port);
+            status = pal_setSockAddrPort(&_socket_address, _server_port);
+
+            if (PAL_SUCCESS != status) {
+                tr_error("setSockAddrPort err: %d", (int)status);
+            } else {
+                tr_debug("address family: %d", (int)_socket_address.addressType);
+                tr_debug("addr : %s", tr_array((const uint8_t*)_socket_address.addressData, 32));
+            }
 
             if(_network_stack == M2MInterface::LwIP_IPv4 ||
                _network_stack == M2MInterface::ATWINC_IPv4){
@@ -723,6 +730,8 @@ bool M2MConnectionHandlerPimpl::init_socket()
         pal_setSockAddrIPV4Addr(&bind_address, interface_address4);
     } else if(_network_stack == M2MInterface::LwIP_IPv6){
         pal_setSockAddrIPV6Addr(&bind_address, interface_address6);
+    } else {
+        tr_warn("stack type: %d", _network_stack);
     }
 
     pal_setSockAddrPort(&bind_address, _listen_port);
