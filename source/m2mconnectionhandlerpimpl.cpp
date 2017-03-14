@@ -219,8 +219,7 @@ void M2MConnectionHandlerPimpl::dns_handler()
             status = pal_getAddressInfo(_server_address.c_str(), &_socket_address, &_socket_address_len);
             if (PAL_SUCCESS != status) {
                 tr_error("addrInfo, err: %d", (int)status);
-                // XXX: the error code given to client is wrong, a DNS_RESOLVING_ERROR might be better here.
-                _observer.socket_error(M2MConnectionHandler::SOCKET_ABORT);
+                _observer.socket_error(M2MConnectionHandler::DNS_RESOLVING_ERROR);
                 return;
             }
             status = pal_setSockAddrPort(&_socket_address, _server_port);
@@ -236,11 +235,11 @@ void M2MConnectionHandlerPimpl::dns_handler()
                 status = pal_getSockAddrIPV4Addr(&_socket_address,_ipV4Addr);
                 if (PAL_SUCCESS != status) {
                     tr_error("sockAddr4, err: %d", (int)status);
-                    _observer.socket_error(M2MConnectionHandler::SOCKET_ABORT);
+                    _observer.socket_error(M2MConnectionHandler::DNS_RESOLVING_ERROR);
                     return;
                 }
 
-                tr_debug("IP Address %s",tr_array(_ipV4Addr, 4));
+                tr_debug("IPv4 Address %s", tr_array(_ipV4Addr, 4));
 
                 _address._address = (void*)_ipV4Addr;
                 _address._length = PAL_IPV4_ADDRESS_SIZE;
@@ -251,11 +250,11 @@ void M2MConnectionHandlerPimpl::dns_handler()
                 status = pal_getSockAddrIPV6Addr(&_socket_address,_ipV6Addr);
                 if (PAL_SUCCESS != status) {
                     tr_error("sockAddr6, err: %d", (int)status);
-                    _observer.socket_error(M2MConnectionHandler::SOCKET_ABORT);
+                    _observer.socket_error(M2MConnectionHandler::DNS_RESOLVING_ERROR);
                     return;
                 }
 
-                tr_debug("IP Address %s",tr_array(_ipV6Addr,sizeof(_ipV6Addr)));
+                tr_debug("IPv6 Address %s", tr_array(_ipV6Addr,sizeof(_ipV6Addr)));
 
                 _address._address = (void*)_ipV6Addr;
                 _address._length = PAL_IPV6_ADDRESS_SIZE;
