@@ -232,8 +232,7 @@ void M2MConnectionHandlerPimpl::dns_handler()
                 tr_debug("addr : %s", tr_array((const uint8_t*)_socket_address.addressData, 32));
             }
 
-            if(_network_stack == M2MInterface::LwIP_IPv4 ||
-               _network_stack == M2MInterface::ATWINC_IPv4){
+            if (_socket_address.addressType == PAL_AF_INET) {
                 status = pal_getSockAddrIPV4Addr(&_socket_address,_ipV4Addr);
                 if (PAL_SUCCESS != status) {
                     tr_error("sockAddr4, err: %d", (int)status);
@@ -248,8 +247,7 @@ void M2MConnectionHandlerPimpl::dns_handler()
                 _address._port = _server_port;
                 _address._stack = _network_stack;
             }
-            else if(_network_stack == M2MInterface::LwIP_IPv6 ||
-                    _network_stack == M2MInterface::Nanostack_IPv6){
+            else if (_socket_address.addressType == PAL_AF_INET6) {
                 status = pal_getSockAddrIPV6Addr(&_socket_address,_ipV6Addr);
                 if (PAL_SUCCESS != status) {
                     tr_error("sockAddr6, err: %d", (int)status);
