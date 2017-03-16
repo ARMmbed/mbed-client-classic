@@ -17,7 +17,7 @@
 #ifndef PAL_NETWORK_STUB_H
 #define PAL_NETWORK_STUB_H
 
-#include "pal_network.h"
+#include "pal.h"
 
 namespace pal_network_stub
 {
@@ -36,3 +36,4 @@ namespace pal_network_stub
 }
 
 #endif // PAL_NETWORK_STUB_H
+

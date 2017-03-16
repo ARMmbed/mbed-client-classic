@@ -23,9 +23,7 @@
 #include "mbed-client/m2mconnectionobserver.h"
 #include "mbed-client/m2mconnectionsecurity.h"
 #include "nsdl-c/sn_nsdl.h"
-
-#include "pal_network.h"
-
+#include "pal.h"
 
 class M2MConnectionSecurity;
 class M2MConnectionHandler;
