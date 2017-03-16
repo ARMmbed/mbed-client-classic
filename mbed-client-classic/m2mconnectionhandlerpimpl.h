@@ -57,7 +57,7 @@ public:
     M2MConnectionHandlerPimpl(M2MConnectionHandler* base, M2MConnectionObserver &observer,
                               M2MConnectionSecurity* sec,
                               M2MInterface::BindingMode mode,
-                              M2MInterface::NetworkStack stack);
+                              M2MInterface::NetworkStack /*stack*/);
 
     /**
     * @brief Destructor
@@ -247,7 +247,6 @@ private:
     const M2MSecurity                           *_security; //non-owned
     bool                                        _use_secure_connection;
     M2MInterface::BindingMode                   _binding_mode;
-    M2MInterface::NetworkStack                  _network_stack;
     M2MConnectionObserver::SocketAddress        _address;
 
     // _address._address will point to one of these two
