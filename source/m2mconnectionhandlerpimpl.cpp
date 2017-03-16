@@ -13,6 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+// fixup the compilation on ARMCC for PRIu32
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
+
 #include "mbed-client-classic/m2mconnectionhandlerpimpl.h"
 #include "mbed-client/m2mconnectionobserver.h"
 #include "mbed-client/m2mconstants.h"
@@ -277,7 +282,7 @@ void M2MConnectionHandlerPimpl::dns_handler()
                     // XXX: the mbed-os version of PAL has a bug (IOTPAL-228) open that the select
                     // does not necessarily work correctly. So, should we actually handle
                     // the PAL_ERR_SOCKET_IN_PROGRESS as a error here if code is compiled for mbed-os?
-                    tr_debug("pal_connect(): %d, async connect started", status);
+                    tr_debug("pal_connect(): %d, async connect started", (int)status);
                     // we need to wait for the event
                     _socket_state = ESocketStateConnecting;
                     break;
@@ -289,7 +294,7 @@ void M2MConnectionHandlerPimpl::dns_handler()
                     _socket_state = ESocketStateConnected;
 
                 } else {
-                    tr_error("pal_connect(): failed: %d", status);
+                    tr_error("pal_connect(): failed: %d", (int)status);
                     close_socket();
                     _observer.socket_error(M2MConnectionHandler::SOCKET_ABORT);
                     return;
@@ -354,7 +359,7 @@ void M2MConnectionHandlerPimpl::dns_handler()
             status = pal_socketMiniSelect(&_socket, 1, &zeroTime, socketStatus, &socketsSet);
             if (status != PAL_SUCCESS) {
                 // XXX: how could this fail? What to do?
-                tr_error("dns_handler() - read select fail, err: %d", status);
+                tr_error("dns_handler() - read select fail, err: %d", (int)status);
                 close_socket(); // this will also set the socket state to disconnect
                 // XXX: should we inform the observer here too?
                 return;
@@ -490,7 +495,8 @@ int M2MConnectionHandlerPimpl::send_to_socket(const unsigned char *buf, size_t l
         return (-1);
     }
 
-    tr_debug("send_to_socket len - %d", len);
+    // Note: "%zu" does not work on GCC+mbed-os combo
+    tr_debug("send_to_socket len - %u", (unsigned int)len);
 
     if(is_tcp_connection()) {
 #ifdef PAL_NET_TCP_AND_TLS_SUPPORT
@@ -532,7 +538,7 @@ int M2MConnectionHandlerPimpl::receive_from_socket(unsigned char *buf, size_t le
         return M2MConnectionHandler::CONNECTION_ERROR_WANTS_READ;
     }
     else {
-        tr_info("PAL Socket returned: %d", status);
+        tr_info("PAL Socket returned: %d", (int)status);
     }
 
     return (-1);
@@ -695,10 +701,10 @@ bool M2MConnectionHandlerPimpl::init_socket()
 
     uint32_t interface_count;
     pal_getNumberOfNetInterfaces(&interface_count);
-    tr_debug("Interface count: %d",interface_count);
+    tr_debug("Interface count: %" PRIu32, interface_count);
     pal_getNetInterfaceInfo(_net_iface, &interface_info);
     tr_debug("Interface name: %s",interface_info.interfaceName);
-    tr_debug("Interface no: %d", _net_iface);
+    tr_debug("Interface no: %" PRIu32, _net_iface);
     tr_debug("init_socket - port %d", _listen_port);
 
     status = pal_asynchronousSocket(domain, socket_type, 1, _net_iface, &socket_event_handler, &_socket);
