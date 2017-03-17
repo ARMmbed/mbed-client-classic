@@ -25,6 +25,7 @@
 #include "mbed-client/m2mconnectionhandler.h"
 
 #include "pal.h"
+#include "pal_network.h"
 
 #include "eventOS_scheduler.h"
 #include "eventOS_event.h"

@@ -18,6 +18,7 @@
 #define PAL_NETWORK_STUB_H
 
 #include "pal.h"
+#include "pal_network.h"
 
 namespace pal_network_stub
 {
