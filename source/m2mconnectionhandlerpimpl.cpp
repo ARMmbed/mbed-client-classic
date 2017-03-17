@@ -114,7 +114,6 @@ M2MConnectionHandlerPimpl::M2MConnectionHandlerPimpl(M2MConnectionHandler* base,
  _security(NULL),
  _use_secure_connection(false),
  _binding_mode(mode),
- _network_stack(stack),
  _socket(0),
  _is_handshaking(false),
  _listening(true),
@@ -228,7 +227,6 @@ void M2MConnectionHandlerPimpl::dns_handler()
                 tr_error("setSockAddrPort err: %d", (int)status);
             } else {
                 tr_debug("address family: %d", (int)_socket_address.addressType);
-                tr_debug("addr : %s", tr_array((const uint8_t*)_socket_address.addressData, 32));
             }
 
             if (_socket_address.addressType == PAL_AF_INET) {
@@ -244,7 +242,6 @@ void M2MConnectionHandlerPimpl::dns_handler()
                 _address._address = (void*)_ipV4Addr;
                 _address._length = PAL_IPV4_ADDRESS_SIZE;
                 _address._port = _server_port;
-                _address._stack = _network_stack;
             }
             else if (_socket_address.addressType == PAL_AF_INET6) {
                 status = pal_getSockAddrIPV6Addr(&_socket_address,_ipV6Addr);
@@ -259,10 +256,9 @@ void M2MConnectionHandlerPimpl::dns_handler()
                 _address._address = (void*)_ipV6Addr;
                 _address._length = PAL_IPV6_ADDRESS_SIZE;
                 _address._port = _server_port;
-                _address._stack = _network_stack;
             }
             else {
-                tr_error("socket config error, stack: %d", (int)_network_stack);
+                tr_error("socket config error, stack: %d", (int)_socket_address.addressType);
                 _observer.socket_error(M2MConnectionHandler::SOCKET_ABORT);
                 return;
             }
@@ -688,7 +684,6 @@ bool M2MConnectionHandlerPimpl::init_socket()
     _running = true;
     palSocketType_t socket_type = PAL_SOCK_DGRAM;
     palStatus_t status;
-    palSocketDomain_t domain;
     palSocketAddress_t bind_address;
 
     if(is_tcp_connection()) {
@@ -703,14 +698,6 @@ bool M2MConnectionHandlerPimpl::init_socket()
 #endif //PAL_NET_TCP_AND_TLS_SUPPORT
     }
 
-    if(_network_stack == M2MInterface::LwIP_IPv4){
-        domain = PAL_AF_INET;
-    } else if(_network_stack == M2MInterface::LwIP_IPv6){
-        domain = PAL_AF_INET6;
-    } else {
-        domain = PAL_AF_UNSPEC;
-    }
-
     uint32_t interface_count;
     pal_getNumberOfNetInterfaces(&interface_count);
     tr_debug("Interface count: %" PRIu32, interface_count);
@@ -719,7 +706,7 @@ bool M2MConnectionHandlerPimpl::init_socket()
     tr_debug("Interface no: %" PRIu32, _net_iface);
     tr_debug("init_socket - port %d", _listen_port);
 
-    status = pal_asynchronousSocket(domain, socket_type, 1, _net_iface, &socket_event_handler, &_socket);
+    status = pal_asynchronousSocket((palSocketDomain_t)_socket_address.addressType, socket_type, 1, _net_iface, &socket_event_handler, &_socket);
 
     if(PAL_SUCCESS != status) {
         tr_error("socket create error : %d", (int)status);
@@ -727,12 +714,12 @@ bool M2MConnectionHandlerPimpl::init_socket()
         return false;
     }
 
-    if(_network_stack == M2MInterface::LwIP_IPv4){
+    if(_socket_address.addressType == PAL_AF_INET){
         pal_setSockAddrIPV4Addr(&bind_address, interface_address4);
-    } else if(_network_stack == M2MInterface::LwIP_IPv6){
+    } else if(_socket_address.addressType == PAL_AF_INET6){
         pal_setSockAddrIPV6Addr(&bind_address, interface_address6);
     } else {
-        tr_warn("stack type: %d", _network_stack);
+        tr_warn("stack type: %d", (int)_socket_address.addressType);
     }
 
     pal_setSockAddrPort(&bind_address, _listen_port);
