@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 #include "mbed-client/m2mtimer.h"
-#include "mbed-client/m2mtimerobserver.h"
+asdasdas#include "mbed-client/m2mtimerobserver.h"
 #include "mbed-client-classic/m2mtimerpimpl.h"
 
-
-M2MTimer::M2MTimer(M2MTimerObserver& observer)
-: _observer(observer)
+asdasd
+asdasdM2MTimer::M2MTimer(M2MTimerObserver& observer)
+asdasd: _observer(observer)
 {
     _private_impl = new M2MTimerPimpl(observer);
 }
