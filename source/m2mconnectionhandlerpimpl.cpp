@@ -569,26 +569,49 @@ void M2MConnectionHandlerPimpl::set_platform_network_handler(void *handler)
 
 void M2MConnectionHandlerPimpl::receive_handshake_handler()
 {
+    int return_value;
     tr_debug("receive_handshake_handler()");
+
     if( _is_handshaking ){
-        int ret = _security_impl->continue_connecting();
-        tr_debug("ret %d", ret);
-        if( ret == M2MConnectionHandler::CONNECTION_ERROR_WANTS_READ ){ //We wait for next readable event
-            tr_debug("We wait for next readable event");
-            return;
-        } else if( ret == 0 ){
+
+        return_value = _security_impl->connect(_base);
+
+        if(!return_value){
+
+            _handshake_retry = 0;
             _is_handshaking = false;
             _use_secure_connection = true;
             enable_keepalive();
             _observer.address_ready(_address,
                                     _server_type,
                                     _server_port);
-        } else if( ret < 0 ){
+
+        }
+        else if(return_value != M2MConnectionHandler::CONNECTION_ERROR_WANTS_READ){
+
+            _handshake_retry = 0;
             _is_handshaking = false;
             _observer.socket_error(M2MConnectionHandler::SSL_CONNECTION_ERROR, true);
             close_socket();
+
         }
+        else{
+
+            if(_handshake_retry++ > CONNECTION_TLS_MAX_RETRY){
+
+                _handshake_retry = 0;
+                _is_handshaking = false;
+                _observer.socket_error(M2MConnectionHandler::SSL_CONNECTION_ERROR, true);
+                close_socket();
+
+            }
+            eventOS_event_timer_cancel(ESocketReadytoRead, M2MConnectionHandlerPimpl::_tasklet_id);
+            eventOS_event_timer_request(ESocketReadytoRead, ESocketReadytoRead, M2MConnectionHandlerPimpl::_tasklet_id, 1000);
+
+        }
+
     }
+
 }
 
 bool M2MConnectionHandlerPimpl::is_handshake_ongoing()
