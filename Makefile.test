@@ -20,6 +20,9 @@ clone:
 	@git clone --depth 1 git@github.com:ARMmbed/mbed-client-c.git ./test_modules/mbed-client-c
 	@git clone --depth 1 git@github.com:ARMmbed/mbed-client.git ./test_modules/mbed-client
 	@git clone --depth 1 git@github.com:ARMmbed/mbed-client-pal.git ./test_modules/mbed-client-pal
+	cd mbed-client-pal
+	git checkout 1a3103bcf67a257159b0d8b2a4a87aede0fdff55
+	cd ..
 	@git clone --depth 1 git@github.com:ARMmbed/mbed-coap.git ./test_modules/mbed-coap
 
 .PHONY: test
