@@ -34,7 +34,8 @@
 #include "eventOS_event_timer.h"
 
 #include "mbed-trace/mbed_trace.h"
-#include "mbed.h"
+
+#include <stdlib.h> // free() and malloc()
 
 #define TRACE_GROUP "mClt"
 
