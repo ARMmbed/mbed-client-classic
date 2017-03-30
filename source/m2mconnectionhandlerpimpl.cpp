@@ -105,8 +105,9 @@ void M2MConnectionHandlerPimpl::send_receive_event(void)
     }
 }
 
-extern "C" void socket_event_handler(void)
+extern "C" void socket_event_handler(void* arg)
 {
+    (void*)arg;
     if(!connection_handler) {
         return;
     }
