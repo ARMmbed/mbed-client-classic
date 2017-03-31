@@ -25,9 +25,6 @@
 #include "mbed-client/m2mconnectionhandler.h"
 
 #include "pal.h"
-#include "pal_errors.h"
-#include "pal_macros.h"
-#include "pal_network.h"
 
 #include "eventOS_scheduler.h"
 #include "eventOS_event.h"
@@ -101,8 +98,9 @@ void M2MConnectionHandlerPimpl::send_receive_event(void)
     }
 }
 
-extern "C" void socket_event_handler(void)
+extern "C" void socket_event_handler(void* arg)
 {
+    (void*)arg;
     if(!connection_handler) {
         return;
     }
