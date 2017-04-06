@@ -525,6 +525,7 @@ int M2MConnectionHandlerPimpl::receive_from_socket(unsigned char *buf, size_t le
     tr_debug("receive_from_socket");
 
     if(!_running) {
+        tr_warn("not ready");
         return (-1);
     }
 
@@ -537,13 +538,14 @@ int M2MConnectionHandlerPimpl::receive_from_socket(unsigned char *buf, size_t le
     }
 
     if(status == PAL_SUCCESS){
+        tr_debug("receive_from_socket len - %u", (unsigned int)len);
         return recv_len;
     }
     else if (status == PAL_ERR_SOCKET_WOULD_BLOCK) {
         return M2MConnectionHandler::CONNECTION_ERROR_WANTS_READ;
     }
     else {
-        tr_info("PAL Socket returned: %d", (int)status);
+        tr_error("PAL Socket returned: %d", (int)status);
     }
 
     return (-1);
