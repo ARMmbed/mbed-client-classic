@@ -82,7 +82,7 @@ void M2MConnectionHandlerPimpl::send_receive_event(void)
 
     // The dns_handler() is used for the socket connection phase and
     // after socket is connected, all the callbacks are assumed to come
-    // from async socket data send/receival.
+    // from async socket data send/recieval.
     if (_socket_state == ESocketStateConnected) {
         event.event_type = ESocketReadytoRead;
     } else if (_socket_state == ESocketStateConnectBeingCalled) {
@@ -596,17 +596,20 @@ void M2MConnectionHandlerPimpl::receive_handshake_handler()
         }
         else{
 
-            if(_handshake_retry++ > CONNECTION_TLS_MAX_RETRY){
+            if (!is_tcp_connection()) {
+                // For UDP retransmissions we have to "poll" the PAL TLS, for TCP retransmissions are handled automatically
+                // and TLS reconnection happens through clients registration_flow_timer.
+                if(_handshake_retry++ > CONNECTION_TLS_MAX_RETRY){
 
-                _handshake_retry = 0;
-                _is_handshaking = false;
-                _observer.socket_error(M2MConnectionHandler::SSL_CONNECTION_ERROR, true);
-                close_socket();
+                    _handshake_retry = 0;
+                    _is_handshaking = false;
+                    _observer.socket_error(M2MConnectionHandler::SSL_CONNECTION_ERROR, true);
+                    close_socket();
 
+                }
+                eventOS_event_timer_cancel(ESocketReadytoRead, M2MConnectionHandlerPimpl::_tasklet_id);
+                eventOS_event_timer_request(ESocketReadytoRead, ESocketReadytoRead, M2MConnectionHandlerPimpl::_tasklet_id, 1000);
             }
-            eventOS_event_timer_cancel(ESocketReadytoRead, M2MConnectionHandlerPimpl::_tasklet_id);
-            eventOS_event_timer_request(ESocketReadytoRead, ESocketReadytoRead, M2MConnectionHandlerPimpl::_tasklet_id, 1000);
-
         }
 
     }
