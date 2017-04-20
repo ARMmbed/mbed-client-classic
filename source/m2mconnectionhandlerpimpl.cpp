@@ -592,7 +592,7 @@ void M2MConnectionHandlerPimpl::receive_handshake_handler()
 
             _handshake_retry = 0;
             _is_handshaking = false;
-            _observer.socket_error(M2MConnectionHandler::SSL_CONNECTION_ERROR, true);
+            _observer.socket_error(M2MConnectionHandler::SSL_CONNECTION_ERROR, false);
             close_socket();
 
         }
@@ -602,7 +602,7 @@ void M2MConnectionHandlerPimpl::receive_handshake_handler()
 
                 _handshake_retry = 0;
                 _is_handshaking = false;
-                _observer.socket_error(M2MConnectionHandler::SSL_CONNECTION_ERROR, true);
+                _observer.socket_error(M2MConnectionHandler::SSL_CONNECTION_ERROR, false);
                 close_socket();
 
             }
