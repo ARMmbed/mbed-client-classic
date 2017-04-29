@@ -730,6 +730,8 @@ bool M2MConnectionHandlerPimpl::init_socket()
     pal_getNetInterfaceInfo(_net_iface, &interface_info);
     tr_debug("Interface name: %s",interface_info.interfaceName);
     tr_debug("Interface no: %" PRIu32, _net_iface);
+    uint32_t _new_port = 2000+rand()%30000;
+    _listen_port=_new_port;
     tr_debug("init_socket - port %d", _listen_port);
 
     status = pal_asynchronousSocket((palSocketDomain_t)_socket_address.addressType, socket_type, 1, _net_iface, &socket_event_handler, &_socket);
