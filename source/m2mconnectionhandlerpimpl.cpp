@@ -593,7 +593,7 @@ void M2MConnectionHandlerPimpl::receive_handshake_handler()
         else if(return_value != M2MConnectionHandler::CONNECTION_ERROR_WANTS_READ){
 
             _is_handshaking = false;
-            _observer.socket_error(M2MConnectionHandler::SSL_CONNECTION_ERROR, true);
+            _observer.socket_error(M2MConnectionHandler::SSL_CONNECTION_ERROR, false);
             close_socket();
 
         }
