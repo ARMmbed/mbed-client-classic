@@ -540,11 +540,11 @@ int M2MConnectionHandlerPimpl::receive_from_socket(unsigned char *buf, size_t le
         status = pal_recv(_socket, buf, len, &recv_len);
 #endif //PAL_NET_TCP_AND_TLS_SUPPORT
     } else {
-        tr_debug("receive_from_socket len - %u", (unsigned int)len);
         status = pal_receiveFrom(_socket, buf, len, NULL, NULL, &recv_len);
     }
 
     if(status == PAL_SUCCESS){
+        tr_debug("receive_from_socket len - %u", (unsigned int)len);
         return recv_len;
     }
     else if (status == PAL_ERR_SOCKET_WOULD_BLOCK) {
