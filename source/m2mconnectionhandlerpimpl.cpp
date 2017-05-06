@@ -621,8 +621,6 @@ bool M2MConnectionHandlerPimpl::is_handshake_ongoing()
 
 void M2MConnectionHandlerPimpl::receive_handler()
 {
-    unsigned char recv_buffer[BUFFER_LENGTH];
-    memset(&recv_buffer, 0, BUFFER_LENGTH);
     if(_is_handshaking){
         receive_handshake_handler();
     }
@@ -632,6 +630,7 @@ void M2MConnectionHandlerPimpl::receive_handler()
         if( _use_secure_connection ){
 
             int rcv_size;
+            unsigned char recv_buffer[BUFFER_LENGTH];
             rcv_size = _security_impl->read(recv_buffer, sizeof(recv_buffer));
             if(rcv_size > 0){
                 _observer.data_available((uint8_t*)recv_buffer,
@@ -645,7 +644,7 @@ void M2MConnectionHandlerPimpl::receive_handler()
         } else{
             size_t recv;
             palStatus_t status;
-
+            unsigned char recv_buffer[BUFFER_LENGTH];
             if(is_tcp_connection()){
 #ifdef PAL_NET_TCP_AND_TLS_SUPPORT
                 status = pal_recv(_socket, recv_buffer, sizeof(recv_buffer), &recv);
