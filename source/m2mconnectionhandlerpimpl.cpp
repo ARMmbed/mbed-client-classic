@@ -147,7 +147,6 @@ M2MConnectionHandlerPimpl::M2MConnectionHandlerPimpl(M2MConnectionHandler* base,
     memset(&_socket_address, 0, sizeof _socket_address);
     memset(&_ipV4Addr, 0, sizeof(palIpV4Addr_t));
     memset(&_ipV6Addr, 0, sizeof(palIpV6Addr_t));
-    memset(&_recv_buffer, 0, BUFFER_LENGTH);
 
     connection_handler = this;
     eventOS_scheduler_mutex_wait();
@@ -631,9 +630,10 @@ void M2MConnectionHandlerPimpl::receive_handler()
         if( _use_secure_connection ){
 
             int rcv_size;
-            rcv_size = _security_impl->read(_recv_buffer, sizeof(_recv_buffer));
+            unsigned char recv_buffer[BUFFER_LENGTH];
+            rcv_size = _security_impl->read(recv_buffer, sizeof(recv_buffer));
             if(rcv_size > 0){
-                _observer.data_available((uint8_t*)_recv_buffer,
+                _observer.data_available((uint8_t*)recv_buffer,
                                          rcv_size, _address);
             } else if (M2MConnectionHandler::CONNECTION_ERROR_WANTS_READ != rcv_size && rcv_size < 0) {
                 _observer.socket_error(M2MConnectionHandler::SOCKET_READ_ERROR, true);
@@ -644,13 +644,13 @@ void M2MConnectionHandlerPimpl::receive_handler()
         } else{
             size_t recv;
             palStatus_t status;
-
+            unsigned char recv_buffer[BUFFER_LENGTH];
             if(is_tcp_connection()){
 #ifdef PAL_NET_TCP_AND_TLS_SUPPORT
-                status = pal_recv(_socket, _recv_buffer, sizeof(_recv_buffer), &recv);
+                status = pal_recv(_socket, recv_buffer, sizeof(recv_buffer), &recv);
 #endif //PAL_NET_TCP_AND_TLS_SUPPORT
             } else{
-                status = pal_receiveFrom(_socket, _recv_buffer, sizeof(_recv_buffer), NULL, NULL, &recv);
+                status = pal_receiveFrom(_socket, recv_buffer, sizeof(recv_buffer), NULL, NULL, &recv);
             }
 
             if(status == PAL_ERR_SOCKET_WOULD_BLOCK){
@@ -665,7 +665,7 @@ void M2MConnectionHandlerPimpl::receive_handler()
             tr_debug("data received, len: %zu", recv);
 
             if(!is_tcp_connection()){ // Observer for UDP plain mode
-                _observer.data_available((uint8_t*)_recv_buffer, recv, _address);
+                _observer.data_available((uint8_t*)recv_buffer, recv, _address);
             } else {
 #ifdef PAL_NET_TCP_AND_TLS_SUPPORT
                 if( recv < 4 ){
@@ -675,11 +675,11 @@ void M2MConnectionHandlerPimpl::receive_handler()
                 }
 
                 //We need to "shim" out the length from the front
-                uint32_t len = (_recv_buffer[0] << 24 & 0xFF000000) + (_recv_buffer[1] << 16 & 0xFF0000);
-                len += (_recv_buffer[2] << 8 & 0xFF00) + (_recv_buffer[3] & 0xFF);
+                uint32_t len = (recv_buffer[0] << 24 & 0xFF000000) + (recv_buffer[1] << 16 & 0xFF0000);
+                len += (recv_buffer[2] << 8 & 0xFF00) + (recv_buffer[3] & 0xFF);
                 if(len > 0 && len <= recv - 4) {
                     // Observer for TCP plain mode
-                    _observer.data_available(_recv_buffer + 4, len, _address);
+                    _observer.data_available(recv_buffer + 4, len, _address);
                 }
 #endif //PAL_NET_TCP_AND_TLS_SUPPORT
             }
