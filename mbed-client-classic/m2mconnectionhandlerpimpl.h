@@ -40,6 +40,7 @@ public:
 
     enum SocketEvent {
         ESocketIdle         = 0x00,
+        ESocketHandshake    = 0x01,
         ESocketReadytoRead  = 0x02,
         ESocketDnsHandler   = 0x04,
         ESocketSend         = 0x08
@@ -188,6 +189,8 @@ public:
 
     void send_receive_event(void);
 
+    static int8_t get_tasklet_id();
+
 private:
 
     /**
@@ -267,7 +270,6 @@ private:
     // asynchronous events and callbacks. Note: the state may be accessed from
     // event sender and receiver threads.
     volatile SocketState                        _socket_state;
-    uint8_t                                     _handshake_retry;
 
 friend class Test_M2MConnectionHandlerPimpl;
 friend class Test_M2MConnectionHandlerPimpl_mbed;

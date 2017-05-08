@@ -51,6 +51,9 @@ extern "C" void connection_event_handler(arm_event_s *event)
     }
 
     switch(event->event_type){
+        case M2MConnectionHandlerPimpl::ESocketHandshake:
+            connection_handler->receive_handshake_handler();
+            break;
         case M2MConnectionHandlerPimpl::ESocketReadytoRead:
             connection_handler->receive_handler();
             break;
@@ -104,7 +107,7 @@ void M2MConnectionHandlerPimpl::send_receive_event(void)
 
 extern "C" void socket_event_handler(void* arg)
 {
-    (void*)arg;
+    (void)arg;
     if(!connection_handler) {
         return;
     }
@@ -129,8 +132,7 @@ M2MConnectionHandlerPimpl::M2MConnectionHandlerPimpl(M2MConnectionHandler* base,
  _listen_port(0),
  _running(false),
  _net_iface(0),
- _socket_state(ESocketStateDisconnected),
- _handshake_retry(0)
+ _socket_state(ESocketStateDisconnected)
 {
 #ifndef PAL_NET_TCP_AND_TLS_SUPPORT
     if (is_tcp_connection()) {
@@ -482,6 +484,7 @@ bool M2MConnectionHandlerPimpl::start_listening_for_data()
 void M2MConnectionHandlerPimpl::stop_listening()
 {
     tr_debug("stop_listening()");
+
     _listening = false;
     _running = false;
 
@@ -578,7 +581,6 @@ void M2MConnectionHandlerPimpl::receive_handshake_handler()
 
         if(!return_value){
 
-            _handshake_retry = 0;
             _is_handshaking = false;
             _use_secure_connection = true;
             enable_keepalive();
@@ -589,24 +591,9 @@ void M2MConnectionHandlerPimpl::receive_handshake_handler()
         }
         else if(return_value != M2MConnectionHandler::CONNECTION_ERROR_WANTS_READ){
 
-            _handshake_retry = 0;
             _is_handshaking = false;
             _observer.socket_error(M2MConnectionHandler::SSL_CONNECTION_ERROR, false);
             close_socket();
-
-        }
-        else{
-
-            if(_handshake_retry++ > CONNECTION_TLS_MAX_RETRY){
-
-                _handshake_retry = 0;
-                _is_handshaking = false;
-                _observer.socket_error(M2MConnectionHandler::SSL_CONNECTION_ERROR, false);
-                close_socket();
-
-            }
-            eventOS_event_timer_cancel(ESocketReadytoRead, M2MConnectionHandlerPimpl::_tasklet_id);
-            eventOS_event_timer_request(ESocketReadytoRead, ESocketReadytoRead, M2MConnectionHandlerPimpl::_tasklet_id, 1000);
 
         }
 
@@ -792,3 +779,9 @@ void M2MConnectionHandlerPimpl::enable_keepalive()
 #endif
 #endif
 }
+
+int8_t M2MConnectionHandlerPimpl::get_tasklet_id()
+{
+    return M2MConnectionHandlerPimpl::_tasklet_id;
+}
+
