@@ -86,12 +86,8 @@ void M2MConnectionHandlerPimpl::send_receive_event(void)
     if (_socket_state == ESocketStateConnected) {
         event.event_type = ESocketReadytoRead;
     } else if (_socket_state == ESocketStateConnectBeingCalled) {
-        // The pal_connect() may issue callback even during it is called, which we ignore completely.
-        tr_debug("send_receive_event : _socket_state: ESocketStateConnectBeingCalled, ignoring event");
         return;
     } else if (_socket_state == ESocketStateCloseBeingCalled) {
-        // The pal_close() may issue callback even during it is called, which we ignore completely.
-        tr_debug("send_receive_event : _socket_state: ESocketStateCloseBeingCalled, ignoring event");
         return;
     } else {
         event.event_type = ESocketDnsHandler;
