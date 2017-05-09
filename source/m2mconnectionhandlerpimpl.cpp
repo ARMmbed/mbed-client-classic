@@ -86,9 +86,9 @@ void M2MConnectionHandlerPimpl::send_receive_event(void)
     if (_socket_state == ESocketStateConnected) {
         event.event_type = ESocketReadytoRead;
     } else if (_socket_state == ESocketStateConnectBeingCalled) {
-        // The pal_connect() may issue callback even during it is called, which we ignore completely.
-        tr_debug("send_receive_event : _socket_state: ESocketStateConnectBeingCalled, ignoring event");
-        return;
+        // The pal_connect() may or may not issue callback even during it is called, which will cause a new event to be sent
+        tr_debug("send_receive_event : _socket_state: ESocketStateConnectBeingCalled, NOT ignoring event");
+        event.event_type = ESocketDnsHandler;
     } else if (_socket_state == ESocketStateCloseBeingCalled) {
         // The pal_close() may issue callback even during it is called, which we ignore completely.
         tr_debug("send_receive_event : _socket_state: ESocketStateCloseBeingCalled, ignoring event");
@@ -213,7 +213,6 @@ void M2MConnectionHandlerPimpl::dns_handler()
     tr_debug("M2MConnectionHandlerPimpl::dns_handler - _socket_state = %d", _socket_state);
 
     switch (_socket_state) {
-        case ESocketStateConnectBeingCalled:
         case ESocketStateCloseBeingCalled:
             // Ignore these events
             break;
@@ -277,14 +276,19 @@ void M2MConnectionHandlerPimpl::dns_handler()
                 // done here too.
                 return;
             }
+            _socket_state = ESocketStateConnectBeingCalled;
+            send_dns_event();
+            break;
 
+        case ESocketStateConnectBeingCalled:
+        case ESocketStateConnecting:
             if(is_tcp_connection()) {
 #ifdef PAL_NET_TCP_AND_TLS_SUPPORT
                 tr_debug("resolve_server_address - Using TCP");
 
                 // At least on mbed-os the pal_connect() will perform callbacks even during it
                 // is called, which we will ignore when this state is set.
-                _socket_state = ESocketStateConnectBeingCalled;
+                //_socket_state = ESocketStateConnectBeingCalled;
 
                 status = pal_connect(_socket, &_socket_address, sizeof(_socket_address));
 
@@ -354,39 +358,6 @@ void M2MConnectionHandlerPimpl::dns_handler()
             }
             break;
 
-        // This case is a continuation of a nonblocking connect() and is skipped
-        // completely on UDP.
-        case ESocketStateConnecting:
-
-            // there is only one socket which we are interested
-            uint8_t socketStatus[1];
-            pal_timeVal_t zeroTime = {0, 0};
-            uint32_t socketsSet = 0;
-
-            status = pal_socketMiniSelect(&_socket, 1, &zeroTime, socketStatus, &socketsSet);
-            if (status != PAL_SUCCESS) {
-                // XXX: how could this fail? What to do?
-                tr_error("dns_handler() - read select fail, err: %d", (int)status);
-                close_socket(); // this will also set the socket state to disconnect
-                // XXX: should we inform the observer here too?
-                return;
-            }
-
-            if (socketsSet > 0) {
-                if (PAL_NET_SELECT_IS_TX(socketStatus, 0)) {
-                    // Socket is connected, signal the dns_handler() again to run rest of the steps
-                    tr_debug("dns_handler() - connect+select succeeded");
-                    _socket_state = ESocketStateConnected;
-                    send_dns_event();
-                } else if (PAL_NET_SELECT_IS_ERR(socketStatus, 0)) {
-                    tr_error("dns_handler() - connect+select failed");
-                    close_socket(); // this will also set the socket state to disconnect
-                    // XXX: should we inform the observer here too?
-                } else {
-                    tr_debug("dns_handler() - connect+select not ready yet, continue waiting");
-                }
-            }
-            break;
     }
 }
 
