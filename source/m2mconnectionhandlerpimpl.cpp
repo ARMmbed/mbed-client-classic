@@ -322,9 +322,9 @@ void M2MConnectionHandlerPimpl::dns_handler()
         // fall through is a normal flow in case the UDP was used or pal_connect() happened to return immediately with PAL_SUCCESS
         case ESocketStateConnected:
             if (_security) {
-                _use_secure_connection = true;
                 if (_security->resource_value_int(M2MSecurity::SecurityMode) == M2MSecurity::Certificate ||
                     _security->resource_value_int(M2MSecurity::SecurityMode) == M2MSecurity::Psk) {
+                    _use_secure_connection = true;
                     if( _security_impl != NULL ){
                         _security_impl->reset();
                         if (_security_impl->init(_security) == 0) {
