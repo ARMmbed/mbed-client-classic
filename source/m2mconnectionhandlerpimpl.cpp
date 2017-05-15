@@ -321,6 +321,7 @@ void M2MConnectionHandlerPimpl::dns_handler()
                 _use_secure_connection = true;
                 if (_security->resource_value_int(M2MSecurity::SecurityMode) == M2MSecurity::Certificate ||
                     _security->resource_value_int(M2MSecurity::SecurityMode) == M2MSecurity::Psk) {
+                    _use_secure_connection = true;
                     if( _security_impl != NULL ){
                         _security_impl->reset();
                         if (_security_impl->init(_security) == 0) {
