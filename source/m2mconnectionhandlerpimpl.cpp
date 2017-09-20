@@ -89,7 +89,10 @@ void M2MConnectionHandlerPimpl::send_receive_event(void)
         event.event_type = ESocketDnsHandler;
     }
 
-    eventOS_event_send(&event);
+    if(eventOS_event_send(&event) != 0) {
+        // \return 0 Event push OK
+        tr_error("M2MConnectionHandlerPimpl::send_receive_event - eventOS_event_send() failed.");
+    }
 }
 
 extern "C" void socket_event_handler(void)
